@@ -9,52 +9,87 @@ public class ContentPanel extends JPanel {
 
     private CardLayout cardLayout;
     private JPanel cardContainer;
-    int step = 0;
+
+    private ProgressTracker tracker;
+    private Navigator nav;
+
+    private int step = 0;
+
+    // 🔑 Step ↔ Card mapping
+    private final String[] steps = {
+            "WELCOME",
+            "PROJECT",
+            "DIMENSIONS",
+            "SLAB",
+            "LABOR",
+            "COST",
+            "SUMMARY"
+    };
 
     public ContentPanel() {
         setLayout(new BorderLayout());
 
-    ProgressTracker tracker = new ProgressTracker();
-    Navigator nav = new Navigator();
+        // =========================
+        // TOP + BOTTOM UI
+        // =========================
+        tracker = new ProgressTracker();
+        nav = new Navigator();
 
-    nav.onNext(() -> {
-        step++;
-        tracker.setStep(step);
-        nav.setStep(step);
-
-        // also call your card switch here
-    });
-
-    nav.onBack(() -> {
-        step--;
-        tracker.setStep(step);
-        nav.setStep(step);
-
-        // also call your card switch here
-    });
-
-
-        // Top (progress tracker)
         add(tracker, BorderLayout.NORTH);
+        add(nav, BorderLayout.SOUTH);
 
-        // Center (cards)
+        // =========================
+        // CARD CONTAINER
+        // =========================
         cardLayout = new CardLayout();
         cardContainer = new JPanel(cardLayout);
         add(cardContainer, BorderLayout.CENTER);
 
-        // Bottom (navigation buttons)
-        add(nav, BorderLayout.SOUTH);
+        // =========================
+        // NAVIGATION LOGIC
+        // =========================
+        nav.onNext(() -> {
+            if (step < steps.length - 1) {
+                step++;
+                updateUIState();
+            }
+        });
+
+        nav.onBack(() -> {
+            if (step > 0) {
+                step--;
+                updateUIState();
+            }
+        });
+
+        // =========================
+        // INITIAL STATE
+        // =========================
+        updateUIState();
     }
 
+    // =========================
+    // CORE UPDATE METHOD
+    // =========================
+    private void updateUIState() {
+        tracker.setStep(step);
+        nav.setStep(step);
+
+        cardLayout.show(cardContainer, steps[step]);
+
+        // Debug (optional)
+        System.out.println("Step: " + step + " → " + steps[step]);
+    }
+
+    // =========================
+    // CARD MANAGEMENT
+    // =========================
     public void addCard(String name, JPanel panel) {
-        cardContainer.add(panel, name);
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setBorder(null); // cleaner look
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        cardContainer.add(scrollPane, name);
+        revalidate();
     }
 
-    public void showCard(String name) {
-        cardLayout.show(cardContainer, name);
-    }
-
-    public JPanel getCardContainer() {
-        return cardContainer;
-    }
 }
