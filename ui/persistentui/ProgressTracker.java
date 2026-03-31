@@ -17,8 +17,7 @@ public class ProgressTracker extends JPanel {
     // ⚙️ STATE
     // =========================
     private String[] steps = {
-            "Welcome", "Project", "Dimensions",
-            "Slab", "Labor", "Cost", "Summary"
+            "Welcome", "Project", "Dimensions", "Labor", "Cost", "Summary"
     };
 
     private int currentStep = 0;

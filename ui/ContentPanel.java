@@ -2,6 +2,7 @@ package ui;
 
 import java.awt.*;
 import javax.swing.*;
+import ui.panels.SummaryPanel;
 import ui.persistentui.Navigator;
 import ui.persistentui.ProgressTracker;
 
@@ -12,6 +13,7 @@ public class ContentPanel extends JPanel {
 
     private ProgressTracker tracker;
     private Navigator nav;
+    private SummaryPanel summaryPanel;
 
     private int step = 0;
 
@@ -20,15 +22,14 @@ public class ContentPanel extends JPanel {
             "WELCOME",
             "PROJECT",
             "DIMENSIONS",
-            "SLAB",
             "LABOR",
             "COST",
             "SUMMARY"
     };
 
-    public ContentPanel() {
+    public ContentPanel(SummaryPanel summaryPanel) {
         setLayout(new BorderLayout());
-
+        this.summaryPanel = summaryPanel;
         // =========================
         // TOP + BOTTOM UI
         // =========================
@@ -77,8 +78,13 @@ public class ContentPanel extends JPanel {
 
         cardLayout.show(cardContainer, steps[step]);
 
+        if (steps[step].equals("SUMMARY"))
+        {
+            this.summaryPanel.renderSummary();
+        }
+
         // Debug (optional)
-        System.out.println("Step: " + step + " → " + steps[step]);
+        //System.out.println("Step: " + step + " → " + steps[step]);
     }
 
     // =========================
