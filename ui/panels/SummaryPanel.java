@@ -12,14 +12,6 @@ public class SummaryPanel extends JPanel {
     private JTextArea summaryArea;
     private InfoManager info = InfoManager.getInstance();
 
-    // Keep ONLY values that are NOT in InfoManager
-    private double concretePrice = 0;
-    private double additionalMat = 0;
-    private double totalCost     = 0;
-    private int    numEmployees  = 0;
-    private double laborHours    = 0;
-    private double laborCost     = 0;
-
     public SummaryPanel() {
         setLayout(new BorderLayout(0, 10));
         setBackground(new Color(240, 240, 240));
@@ -61,7 +53,7 @@ public class SummaryPanel extends JPanel {
 
         add(scroll, BorderLayout.CENTER);
 
-        JLabel hint = new JLabel("Click Refresh to update with latest data.");
+        JLabel hint = new JLabel("Data pulled directly from Project, Labor, and Cost tabs.");
         hint.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         hint.setForeground(new Color(130, 130, 130));
         add(hint, BorderLayout.SOUTH);
@@ -70,24 +62,25 @@ public class SummaryPanel extends JPanel {
     }
 
     public void renderSummary() {
-        String ts = LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("MM/dd/yyyy  HH:mm"));
-
-        double area = info.length * info.width;
-        double concreteCost = info.concreteNeeded * concretePrice;
-        double subtotal = concreteCost + laborCost + additionalMat;
-        double discount = subtotal - totalCost;
+        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"));
+        
+        // Pulling pre-calculated totals from InfoManager
+        double matCost = info.totalConcrete;
+        double labor = info.laborCost;
+        double subtotal = info.subTotal;
+        double discount = info.discount;
+        double total = subtotal - discount; // Final safety math
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append("=".repeat(62)).append("\n");
-        sb.append("       CONCRETE PAD ESTIMATE\n");
-        sb.append("=".repeat(62)).append("\n");
+        sb.append("==============================================================\n");
+        sb.append("           CONCRETE PAD PROJECT SUMMARY\n");
+        sb.append("==============================================================\n");
         sb.append(String.format("  Generated:  %s%n%n", ts));
 
         // PROJECT
         sb.append("PROJECT DETAILS\n");
-        sb.append("-".repeat(40)).append("\n");
+        sb.append("----------------------------------------\n");
         sb.append(row("Project Name", blankOr(info.projectName, "(not entered)")));
         sb.append(row("Location", blankOr(info.projectLocation, "(not entered)")));
         sb.append(row("Client", blankOr(info.projectClient, "(not entered)")));
@@ -95,45 +88,42 @@ public class SummaryPanel extends JPanel {
 
         // DIMENSIONS
         sb.append("DIMENSIONS\n");
-        sb.append("-".repeat(40)).append("\n");
-        sb.append(row("Length", fmt("%.1f ft", info.length)));
-        sb.append(row("Width", fmt("%.1f ft", info.width)));
-        sb.append(row("Total Area", fmt("%.2f sq ft", area)));
+        sb.append("----------------------------------------\n");
+        sb.append(row("Length", String.format("%.1f ft", info.length)));
+        sb.append(row("Width", String.format("%.1f ft", info.width)));
+        sb.append(row("Total Area", String.format("%.2f sq ft", info.length * info.width)));
         sb.append("\n");
 
         // SLAB
         sb.append("SLAB CONFIGURATION\n");
-        sb.append("-".repeat(40)).append("\n");
-        sb.append(row("Slab Type", blankOr(info.slabType, "(not set)")));
-        sb.append(row("Thickness", fmt("%.1f inches", info.thickness)));
-        sb.append(row("Waste Factor", fmt("%.0f%%", info.wasteFactor)));
-        sb.append(row("Concrete Needed", fmt("%.2f cubic yards", info.concreteNeeded)));
+        sb.append("----------------------------------------\n");
+        sb.append(row("Thickness", String.format("%.1f inches", info.thickness)));
+        sb.append(row("Waste Factor", String.format("%.0f%%", info.wasteFactor)));
+        sb.append(row("Concrete Needed", String.format("%.2f cubic yards", info.concreteNeeded)));
         sb.append("\n");
 
         // LABOR
         sb.append("LABOR\n");
-        sb.append("-".repeat(40)).append("\n");
-        sb.append(row("Employees", String.valueOf(numEmployees)));
-        sb.append(row("Total Hours", fmt("%.1f hrs", laborHours)));
-        sb.append(row("Labor Cost", fmt("$%,.2f", laborCost)));
+        sb.append("----------------------------------------\n");
+        sb.append(row("Total Hours", String.format("%.2f hrs", info.hours)));
+        sb.append(row("Labor Cost", String.format("$%,.2f", labor)));
         sb.append("\n");
 
-        // COST
+        // COST BREAKDOWN
         sb.append("COST BREAKDOWN\n");
-        sb.append("-".repeat(40)).append("\n");
-        sb.append(row("Concrete Material", fmt("$%,.2f", concreteCost)));
-        sb.append(row("Labor", fmt("$%,.2f", laborCost)));
-        sb.append(row("Additional Materials", fmt("$%,.2f", additionalMat)));
-        sb.append(row("Subtotal", fmt("$%,.2f", subtotal)));
+        sb.append("----------------------------------------\n");
+        sb.append(row("Concrete Material", String.format("$%,.2f", matCost)));
+        sb.append(row("Labor Cost", String.format("$%,.2f", labor)));
+        sb.append(row("Subtotal", String.format("$%,.2f", subtotal)));
 
         if (discount > 0.01) {
-            sb.append(row("Discount Applied", fmt("-$%,.2f", discount)));
+            sb.append(row("Discount Applied", String.format("-$%,.2f", discount)));
         }
 
         sb.append("\n");
-        sb.append("=".repeat(62)).append("\n");
-        sb.append(String.format("  TOTAL PROJECT COST:   $%,.2f%n", totalCost));
-        sb.append("=".repeat(62)).append("\n");
+        sb.append("==============================================================\n");
+        sb.append(String.format("  TOTAL PROJECT ESTIMATE:   $%,.2f%n", total));
+        sb.append("==============================================================\n");
 
         summaryArea.setText(sb.toString());
         summaryArea.setCaretPosition(0);
@@ -143,32 +133,8 @@ public class SummaryPanel extends JPanel {
         return String.format("  %-28s %s%n", label + ":", value);
     }
 
-    private String fmt(String format, Object val) {
-        return String.format(format, val);
-    }
-
     private String blankOr(String s, String fallback) {
         return (s == null || s.isEmpty()) ? fallback : s;
-    }
-
-    private void saveToFile() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Save Estimate");
-
-        String filename = (info.projectName == null || info.projectName.isEmpty())
-                ? "estimate.txt"
-                : info.projectName.replaceAll("[^a-zA-Z0-9]", "_") + ".txt";
-
-        chooser.setSelectedFile(new File(filename));
-
-        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try (PrintWriter pw = new PrintWriter(chooser.getSelectedFile())) {
-                pw.print(summaryArea.getText());
-                JOptionPane.showMessageDialog(this, "Saved successfully!");
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
-            }
-        }
     }
 
     private void styleBtn(JButton btn, Color bg) {
@@ -180,11 +146,20 @@ public class SummaryPanel extends JPanel {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
-    // setters ONLY for values NOT in InfoManager
-    public void setConcretePrice(double v) { this.concretePrice = v; }
-    public void setAdditionalMat(double v) { this.additionalMat = v; }
-    public void setTotalCost(double v)     { this.totalCost = v; }
-    public void setNumEmployees(int v)     { this.numEmployees = v; }
-    public void setLaborHours(double v)    { this.laborHours = v; }
-    public void setLaborCost(double v)     { this.laborCost = v; }
+    private void saveToFile() {
+        JFileChooser chooser = new JFileChooser();
+        String filename = (info.projectName == null || info.projectName.isEmpty())
+                ? "estimate.txt"
+                : info.projectName.replaceAll("[^a-zA-Z0-9]", "_") + ".txt";
+        chooser.setSelectedFile(new File(filename));
+
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try (PrintWriter pw = new PrintWriter(chooser.getSelectedFile())) {
+                pw.print(summaryArea.getText());
+                JOptionPane.showMessageDialog(this, "Saved successfully!");
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+            }
+        }
+    }
 }
